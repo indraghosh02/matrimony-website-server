@@ -28,12 +28,15 @@ async function run() {
 
     const biodataCollection = client.db('matrimonyDb').collection('biodata');
 
-    // app.post('/biodata', async(req, res)=>{
-    //     const newBiodata = req.body;
-    //     console.log(newBiodata);
-    //     const result = await biodataCollection.insertOne(newBiodata);
-    //     res.send(result);
-    // })
+   
+    app.get('/biodata', async (req, res) => {
+        const result = await biodataCollection.find().toArray()
+        res.send(result)
+      });
+   
+    
+    
+    
     app.post('/biodata', async (req, res) => {
         const newBiodata = req.body;
   
