@@ -27,6 +27,7 @@ async function run() {
    // await client.connect();
 
     const biodataCollection = client.db('matrimonyDb').collection('biodata');
+    const favouriteCollection = client.db('matrimonyDb').collection('favourite');
 
    
     app.get('/biodata', async (req, res) => {
@@ -39,6 +40,36 @@ async function run() {
       const result = await biodataCollection.findOne({ _id: new ObjectId(id) });
       res.send(result);
     });
+    app.get('/biodata/user/:email', async (req, res) => {
+      const email = req.params.email;
+      const result = await biodataCollection.findOne({ email });
+      res.send(result);
+  });
+  
+    // Existing code remains the same
+
+// Endpoint to fetch biodata associated with the logged-in user's email
+app.get('/biodata/user/:email', async (req, res) => {
+  const email = req.params.email;
+  try {
+      const userBiodata = await biodataCollection.findOne({ email });
+      if (!userBiodata) {
+          res.status(404).json({ message: 'Biodata not found for the user' });
+          return;
+      }
+      res.json(userBiodata);
+  } catch (error) {
+      console.error('Error fetching user biodata:', error);
+      res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+
+  
+
+
+    
     
     
     app.post('/biodata', async (req, res) => {
@@ -58,6 +89,37 @@ async function run() {
         const result = await biodataCollection.insertOne(newBiodata);
         res.send(result);
       });
+
+      //favourite
+      // app.post('/favourite', async (req, res) => {
+      //   const favouriteData = req.body;
+      //   const result = await favouriteCollection.insertOne(favouriteData);
+      //   res.send(result);
+      // });
+      app.post('/favourite', async (req, res) => {
+        const { favouriteData, userEmail } = req.body;
+        const favouriteEntry = {
+          ...favouriteData,
+          addedBy: userEmail,
+        };
+        const result = await favouriteCollection.insertOne(favouriteEntry);
+        res.send(result);
+      });
+
+      app.get('/favourites/:email', async (req, res) => {
+        const email = req.params.email;
+        const result = await favouriteCollection.find({ addedBy: email }).toArray();
+        res.send(result);
+      });
+
+      app.delete('/favourite/:id',async(req, res) =>{
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id)}
+        const result = await favouriteCollection.deleteOne(query)
+        res.send(result);
+      })
+      
+      
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
