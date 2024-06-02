@@ -28,6 +28,7 @@ async function run() {
 
     const biodataCollection = client.db('matrimonyDb').collection('biodata');
     const favouriteCollection = client.db('matrimonyDb').collection('favourite');
+    const marriageCollection = client.db('matrimonyDb').collection('marriage');
 
    
     app.get('/biodata', async (req, res) => {
@@ -134,6 +135,18 @@ app.get('/biodata/user/:email', async (req, res) => {
         const result = await favouriteCollection.deleteOne(query)
         res.send(result);
       })
+
+      // marriage
+      app.post('/marriage', async(req,res) =>{
+        const newMarriage =req.body;
+        console.log(newMarriage);
+        const result = await marriageCollection.insertOne(newMarriage);
+        res.send(result)
+      })
+      app.get('/marriage', async (req, res) => {
+        const result = await marriageCollection.find().toArray()
+        res.send(result)
+      });
       
       
 
