@@ -65,13 +65,6 @@ app.get('/biodata/user/:email', async (req, res) => {
   }
 });
 
-
-
-  
-
-
-    
-    
     
     app.post('/biodata', async (req, res) => {
         const newBiodata = req.body;
@@ -90,6 +83,37 @@ app.get('/biodata/user/:email', async (req, res) => {
         const result = await biodataCollection.insertOne(newBiodata);
         res.send(result);
       });
+
+      app.put('/biodata/:id', async(req, res) =>{
+        const id = req.params.id;
+        const filter = {_id: new ObjectId(id)}
+        const options = { upsert: true};
+        const updatedBiodata = req.body;
+        const biodata = {
+          $set: {
+            type: updatedBiodata.type,
+            name:updatedBiodata.name,
+            image:updatedBiodata.image,
+            date:updatedBiodata.date,
+            height:updatedBiodata.height,
+            weight:updatedBiodata.weight,
+            age:updatedBiodata.age,
+            occupation:updatedBiodata.occupation,
+            race:updatedBiodata.race,
+            fName:updatedBiodata.fName,
+            mName:updatedBiodata.mName,
+            permanentDivision:updatedBiodata.permanentDivision,
+            presentDivision:updatedBiodata.presentDivision,
+            partnerAge:updatedBiodata.partnerAge,
+            partnerHeight:updatedBiodata.partnerHeight,
+            partnerWeight:updatedBiodata.partnerWeight,
+            email:updatedBiodata.email,
+            number:updatedBiodata.number,
+          }
+        }
+        const result = await biodataCollection.updateOne(filter, biodata,options );
+        res.send(result);
+      })
 
       //favourite
       // app.post('/favourite', async (req, res) => {
