@@ -96,15 +96,31 @@ app.get('/biodata/user/:email', async (req, res) => {
       //   const result = await favouriteCollection.insertOne(favouriteData);
       //   res.send(result);
       // });
+
+
+
+
+      // app.post('/favourite', async (req, res) => {
+      //   const { favouriteData, userEmail } = req.body;
+      //   const favouriteEntry = {
+      //     ...favouriteData,
+      //     addedBy: userEmail,
+      //   };
+      //   const result = await favouriteCollection.insertOne(favouriteEntry);
+      //   res.send(result);
+      // });
+
       app.post('/favourite', async (req, res) => {
         const { favouriteData, userEmail } = req.body;
+        const { _id, ...favouriteDataWithoutId } = favouriteData; // Exclude the _id field
         const favouriteEntry = {
-          ...favouriteData,
+          ...favouriteDataWithoutId,
           addedBy: userEmail,
         };
         const result = await favouriteCollection.insertOne(favouriteEntry);
         res.send(result);
       });
+
 
       app.get('/favourites/:email', async (req, res) => {
         const email = req.params.email;
