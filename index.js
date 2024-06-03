@@ -215,7 +215,34 @@ app.get('/biodata/user/:email', async (req, res) => {
       })
 
       // update role
-      // app.patch('/user/update/:email', async(req, res))
+      // app.patch('/user/update/:email', async(req, res) =>{
+      //   const email = req.params.email
+      //   const user = req.body
+      //   const query = { email }
+      //   const updateDoc = {
+      //     $set:{
+      //       ...user
+      //     }
+         
+      //   }
+      //   const result = await userCollection.updateOne(query,updateDoc )
+      //   res.send(result)
+      // })
+
+      // Update role endpoint in backend
+        app.patch('/users/update/:email', async (req, res) => {
+          const email = req.params.email;
+          const user = req.body;
+          const query = { email };
+          const updateDoc = {
+            $set: {
+              ...user
+            }
+          };
+          const result = await userCollection.updateOne(query, updateDoc);
+          res.send(result);
+        });
+
 
       
       
