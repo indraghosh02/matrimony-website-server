@@ -208,6 +208,22 @@ app.get('/biodata/user/:email', async (req, res) => {
         res.send(result)
       })
 
+
+      //search
+      app.get('/users/search', async (req, res) => {
+        const name = req.query.name;
+        const query = { name: { $regex: name, $options: 'i' } }; // Case-insensitive search
+      
+        try {
+          const result = await userCollection.find(query).toArray();
+          res.send(result);
+        } catch (error) {
+          console.error('Error searching for users:', error);
+          res.status(500).send({ message: 'Internal server error' });
+        }
+      });
+      
+
       //get all user data
       app.get('/users', async (req, res) => {
         const result = await userCollection.find().toArray()
