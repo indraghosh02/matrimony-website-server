@@ -29,6 +29,7 @@ async function run() {
     const biodataCollection = client.db('matrimonyDb').collection('biodata');
     const favouriteCollection = client.db('matrimonyDb').collection('favourite');
     const marriageCollection = client.db('matrimonyDb').collection('marriage');
+    const userCollection = client.db('matrimonyDb').collection('users');
 
    
     app.get('/biodata', async (req, res) => {
@@ -171,6 +172,51 @@ app.get('/biodata/user/:email', async (req, res) => {
         const result = await marriageCollection.find().toArray()
         res.send(result)
       });
+
+      // save a user
+      app.put('/user', async(req,res) => {
+        const user = req.body
+        const query = { email:user?.email, name:user?.displayName}
+        //check if user already exists
+        const isExist = await userCollection.findOne(query)
+        // if(isExist) return res.send(isExist)
+          if(isExist) {
+            if(user.status === 'Requested'){
+              const result = await userCollection.updateOne(query,
+                 {$set:{status: user?.status}})
+              return res.send(result)
+            }
+            else {
+              return res.send(isExist)
+            }
+          }
+        const options = { upsert: true }
+      
+        const updateDoc = {
+          $set: {
+            ...user,
+          },
+        }
+        const result = userCollection.updateOne(query, updateDoc, options)
+        res.send(result)
+      })
+
+      //get user info by email
+      app.get('/user/:email', async(req, res) => {
+        const email = req.params.email
+        const result = await userCollection.findOne({ email })
+        res.send(result)
+      })
+
+      //get all user data
+      app.get('/users', async (req, res) => {
+        const result = await userCollection.find().toArray()
+        res.send(result)
+      })
+
+      // update role
+      // app.patch('/user/update/:email', async(req, res))
+
       
       
 
