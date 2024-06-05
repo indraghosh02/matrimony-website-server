@@ -442,6 +442,77 @@ app.patch('/premium-requests/approve/:id', async (req, res) => {
 });
 
 
+app.post('/premium-requests', async (req, res) => {
+    const { email, biodata } = req.body;
+
+    console.log('Received premium request:', email, biodata);
+
+    try {
+        // Check if there is an existing request for the same biodataId with a "Pending" or "Approved" status
+        const existingRequest = await premiumRequestCollection.findOne({
+            'biodata.biodataId': biodata.biodataId,
+            $or: [
+                { status: 'Pending' },
+                { status: 'Approved' }
+            ]
+        });
+
+        console.log('Existing request:', existingRequest);
+
+        if (existingRequest) {
+            // If an existing request is found with "Pending" status, update its email and status
+            if (existingRequest.status === 'Pending') {
+                console.log('Updating existing request:', existingRequest._id);
+                await premiumRequestCollection.updateOne(
+                    { _id: existingRequest._id },
+                    { $set: { email, status: 'Pending' } }
+                );
+                console.log('Existing request updated successfully.');
+                return res.status(200).json({ message: 'Existing request updated successfully.' });
+            } else {
+                console.log('Existing request already approved. No action taken.');
+                return res.status(400).json({ message: 'Existing request already approved. No action taken.' });
+            }
+        }
+
+        // If no existing request found, proceed to insert the new request
+        console.log('No existing request found. Inserting new request.');
+        const newRequest = {
+            email,
+            biodata,
+            status: 'Pending'
+        };
+        const result = await premiumRequestCollection.insertOne(newRequest);
+        console.log('New request inserted successfully:', result);
+        return res.status(201).json(result);
+    } catch (error) {
+        console.error('Error processing premium request:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+
+
+app.get('/premium-requests/:id', async (req, res) => {
+  const id = req.params.id;
+  
+  try {
+    const result = await premiumRequestCollection.findOne({ _id: new ObjectId(id) });
+    if (!result) {
+      return res.status(404).json({ message: 'Premium biodata not found' });
+    }
+    res.send(result);
+  } catch (error) {
+    console.error('Error fetching premium biodata details:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+
+
+
+
 
   
 
