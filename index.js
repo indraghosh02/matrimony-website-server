@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 require('dotenv').config()
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 const port = process.env.PORT || 5000;
 //middlewares
 app.use(cors());
@@ -30,6 +31,11 @@ async function run() {
     const favouriteCollection = client.db('matrimonyDb').collection('favourite');
     const marriageCollection = client.db('matrimonyDb').collection('marriage');
     const userCollection = client.db('matrimonyDb').collection('users');
+    const contactRequestCollection = client.db('matrimonyDb').collection('contactRequests');
+    const premiumRequestCollection = client.db('matrimonyDb').collection('premiumRequests');
+  
+
+    // const contactRequestCollection = client.db('matrimonyDb').collection('contactRequests');
 
    
     app.get('/biodata', async (req, res) => {
@@ -116,7 +122,11 @@ app.get('/biodata/user/:email', async (req, res) => {
         res.send(result);
       })
 
-      //favourite
+
+
+
+    
+      
       // app.post('/favourite', async (req, res) => {
       //   const favouriteData = req.body;
       //   const result = await favouriteCollection.insertOne(favouriteData);
@@ -176,7 +186,8 @@ app.get('/biodata/user/:email', async (req, res) => {
       // save a user
       app.put('/user', async(req,res) => {
         const user = req.body
-        const query = { email:user?.email, name:user?.displayName}
+        console.log(user);
+        const query = { email:user?.email, name:user?.name}
         //check if user already exists
         const isExist = await userCollection.findOne(query)
         // if(isExist) return res.send(isExist)
@@ -258,6 +269,181 @@ app.get('/biodata/user/:email', async (req, res) => {
           const result = await userCollection.updateOne(query, updateDoc);
           res.send(result);
         });
+
+
+        // Update premium status endpoint in backend
+    app.patch('/user/update-premium/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const updateDoc = {
+        $set: {
+          isPremium: true
+        }
+      };
+      const result = await userCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+
+
+
+        //payment intent
+    app.post('/request-contact', async (req, res) => {
+      const { biodataId, userEmail, paymentMethodId, price } = req.body;
+          const amount = parseInt(price* 100)
+          console.log(amount, 'amount inside the intent');
+      
+        // Create a PaymentIntent on Stripe
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: amount, // amount in cents
+          currency: 'usd',
+          payment_method_types: ['card' ]
+         
+        });
+
+  
+
+          res.send({ 
+            clientSecret: paymentIntent.client_secret });
+        } 
+     
+
+    );
+
+
+    
+
+
+
+    app.post('/request-contact', async (req, res) => {
+      try {
+        const { biodataId, userEmail, price } = req.body;
+        // Save the biodata information to the database
+        const result = await contactRequestCollection.insertOne({
+          biodataId,
+          userEmail,
+          price,
+          paymentStatus: 'success' // Assuming you have a field to track payment status
+        });
+        res.send(result);
+      } catch (error) {
+        console.error('Error processing payment:', error);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+    });
+  
+    // Endpoint to fetch all contact requests
+    app.get('/contact-requests', async (req, res) => {
+      try {
+        const contactRequests = await contactRequestCollection.find().toArray();
+        // You may need to populate the biodata information based on the biodataId stored in each contact request
+        // Return the contact requests with associated biodata information
+        res.json(contactRequests);
+      } catch (error) {
+        console.error('Error fetching contact requests:', error);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+    });
+
+
+
+
+    // premium reqst
+  //   app.post('/premium-requests', async (req, res) => {
+  //     const { email, biodata } = req.body;
+  //     const newRequest = {
+  //         email,
+  //         biodata,
+  //         status: 'Pending'
+  //     };
+  //     const result = await premiumRequestCollection.insertOne(newRequest);
+  //     res.send(result);
+  // });
+
+  app.post('/premium-requests', async (req, res) => {
+    const { email, biodata } = req.body;
+
+    console.log('Received premium request:', email, biodata);
+
+    try {
+        // Check if there is an existing request with the same email and a status of "Pending" or "Approved"
+        const existingRequest = await premiumRequestCollection.findOne({
+            email,
+            $or: [
+                { status: 'Pending' },
+                { status: 'Approved' }
+            ]
+        });
+
+        console.log('Existing request:', existingRequest);
+
+        if (existingRequest) {
+            console.log('A request with the same email already exists.');
+            return res.status(400).json({ message: 'A request with the same email already exists.' });
+        }
+
+        // If no existing request found, proceed to insert the new request
+        console.log('No existing request found. Inserting new request.');
+        const newRequest = {
+            email,
+            biodata,
+            status: 'Pending'
+        };
+        const result = await premiumRequestCollection.insertOne(newRequest);
+        console.log('New request inserted successfully:', result);
+        return res.status(201).json(result);
+    } catch (error) {
+        console.error('Error processing premium request:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+  
+  
+  
+
+
+  app.get('/premium-requests', async (req, res) => {
+    const requests = await premiumRequestCollection.find().toArray();
+    res.send(requests);
+});
+
+// app.get('/premium-requests/:email', async (req, res) => {
+//     const email = req.params.email;
+//     const premiumRequest = await premiumRequestsCollection.findOne({ email });
+//     if (premiumRequest) {
+//         res.send(premiumRequest);
+//     } else {
+//         res.status(404).send({ message: 'Premium request not found' });
+//     }
+// });
+
+
+
+app.patch('/premium-requests/approve/:id', async (req, res) => {
+  const id = req.params.id;
+  const request = await premiumRequestCollection.findOne({ _id: new ObjectId(id) });
+
+  if (request) {
+      const { email, biodata } = request;
+      // Update the biodata status to premium
+      await biodataCollection.updateOne(
+          { email },
+          { $set: { isPremium: true } }
+      );
+      // Update the request status to 'Approved'
+      const result = await premiumRequestCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { status: 'Approved' } }
+      );
+      res.send(result);
+  } else {
+      res.status(404).send({ message: 'Request not found' });
+  }
+});
+
+
+
+  
 
 
       
