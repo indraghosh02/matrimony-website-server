@@ -188,6 +188,7 @@ app.get('/biodata/user/:email', async (req, res) => {
         const user = req.body
         console.log(user);
         const query = { email:user?.email, name:user?.name}
+        console.log(user.name);
         //check if user already exists
         const isExist = await userCollection.findOne(query)
         // if(isExist) return res.send(isExist)
@@ -308,20 +309,24 @@ app.get('/biodata/user/:email', async (req, res) => {
      
 
     );
+    
 
 
     
 
 
 
-    app.post('/request-contact', async (req, res) => {
+    app.post('/request-contact-info', async (req, res) => {
       try {
-        const { biodataId, userEmail, price } = req.body;
+        const { biodataId, userEmail, price, name,number } = req.body;
         // Save the biodata information to the database
         const result = await contactRequestCollection.insertOne({
           biodataId,
+          name,
+          number,
           userEmail,
           price,
+          status:'Pending',
           paymentStatus: 'success' // Assuming you have a field to track payment status
         });
         res.send(result);
@@ -332,7 +337,7 @@ app.get('/biodata/user/:email', async (req, res) => {
     });
   
     // Endpoint to fetch all contact requests
-    app.get('/contact-requests', async (req, res) => {
+    app.get('/contact-requests-info', async (req, res) => {
       try {
         const contactRequests = await contactRequestCollection.find().toArray();
         // You may need to populate the biodata information based on the biodataId stored in each contact request
@@ -343,8 +348,24 @@ app.get('/biodata/user/:email', async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
       }
     });
+    app.get('/contact-requests-info/:email', async (req, res) => {
+      const email = req.params.email;
+      try {
+        const result = await contactRequestCollection.find({ userEmail: email }).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error('Error fetching contact requests:', error);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+    });
+    
 
-
+    app.delete('/contact-requests-info/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await contactRequestCollection.deleteOne(query);
+      res.send(result);
+    });
 
 
     // premium reqst
@@ -507,6 +528,35 @@ app.get('/premium-requests/:id', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+
+
+
+
+app.get('/info/:biodataId', async (req, res) => {
+  const biodataId = parseInt(req.params.biodataId); // Convert to integer
+  console.log(biodataId);
+  
+  const result = await biodataCollection.findOne({ biodataId }); // Query using the biodataId
+  console.log(result);
+  
+  res.send(result);
+});
+
+
+// app.get('/info/:biodataId', async (req, res) => {
+//   const { biodataId } = req.params;
+//   try {
+//     const result = await biodataCollection.findOne({ biodataId });
+//     if (!result) {
+//       return res.status(404).send('Biodata not found');
+//     }
+//     res.send(result);
+//   } catch (error) {
+//     console.error('Error retrieving biodata:', error);
+//     res.status(500).send('Internal server error');
+//   }
+// });
 
 
 
