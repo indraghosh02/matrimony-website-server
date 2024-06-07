@@ -5,7 +5,20 @@ require('dotenv').config()
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 const port = process.env.PORT || 5000;
 //middlewares
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://matrimony-fd8e3.web.app",
+      "https://matrimony-fd8e3.firebaseapp.com"
+      
+     
+    ],
+    credentials: true
+  }));
+
+
+
 app.use(express.json());
 
 
@@ -71,6 +84,34 @@ app.get('/biodata/user/:email', async (req, res) => {
       res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+
+// app.get('/biodata/filter', async (req, res) => {
+//     const { ageMin, ageMax, type, division } = req.query;
+
+//     const filters = {};
+
+//     if (ageMin && ageMax) {
+//         filters.age = { $gte: parseInt(ageMin), $lte: parseInt(ageMax) };
+//     }
+
+//     if (type) {
+//         filters.type = type;
+//     }
+
+//     if (division) {
+//         filters.permanentDivision = division;
+//     }
+
+//     try {
+//         const result = await biodataCollection.find(filters).toArray();
+//         res.send(result);
+//     } catch (error) {
+//         console.error('Error filtering biodata:', error);
+//         res.status(500).send('Internal server error');
+//     }
+// });
+
 
     
     app.post('/biodata', async (req, res) => {
@@ -318,11 +359,12 @@ app.get('/biodata/user/:email', async (req, res) => {
 
     app.post('/request-contact-info', async (req, res) => {
       try {
-        const { biodataId, userEmail, price, name,number } = req.body;
+        const { biodataId, userEmail, price, name,email,number } = req.body;
         // Save the biodata information to the database
         const result = await contactRequestCollection.insertOne({
           biodataId,
           name,
+          email,
           number,
           userEmail,
           price,
@@ -358,7 +400,28 @@ app.get('/biodata/user/:email', async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
       }
     });
-    
+    app.patch('/contact-requests-info/:id', async (req, res) => {
+      const id = req.params.id;
+      const { status } = req.body;
+  
+      try {
+          const query = { _id: new ObjectId(id) };
+          const updateDoc = {
+              $set: { status }
+          };
+          const result = await contactRequestCollection.updateOne(query, updateDoc);
+  
+          if (result.matchedCount === 0) {
+              res.status(404).json({ message: 'Contact request not found' });
+          } else {
+              res.json({ message: 'Contact request updated successfully' });
+          }
+      } catch (error) {
+          console.error('Error updating contact request:', error);
+          res.status(500).json({ message: 'Internal server error' });
+      }
+  });
+  
 
     app.delete('/contact-requests-info/:id', async (req, res) => {
       const id = req.params.id;
@@ -571,7 +634,7 @@ app.get('/info/:biodataId', async (req, res) => {
       
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
